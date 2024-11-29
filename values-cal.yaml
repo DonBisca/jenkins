@@ -1,0 +1,6 @@
+
+image: jenkins/jenkins:2.452-jdk11
+namespace: jenkins-cal
+ip_ingress: ip-jenkins-cal-v3
+nfs_server: nfs-kubernetes-cal-v3final
+token: []

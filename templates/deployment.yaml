@@ -1,0 +1,92 @@
+#Creacion de servidor Jenkins, servicios asociados e ingress para el acceso al mismo
+#Revision V6 29/06/2022
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jenkins
+  namespace: {{ .Values.namespace }}
+spec:
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  replicas: 1
+  # serviceName: jenkins-svc
+  selector:
+    matchLabels:
+      app: jenkins
+  template:
+    metadata:
+      labels:
+        app: jenkins
+      annotations:
+        cluster-autoscaler.kubernetes.io/safe-to-evict: "true" 
+    spec:
+      containers:
+        - name: jenkins
+          image: {{ .Values.image }}
+          resources:
+            requests:
+              memory: "8000Mi"
+              cpu: "1500m"
+            limits:
+              memory: "8000Mi"
+              cpu: "1500m"
+          env:
+            - name: JAVA_OPTS
+              value: "-Djava.awt.headless=true -Xmx4g"
+          lifecycle:
+            postStart:
+              exec:
+                command: ["sh", "-c", "echo '192.0.1.21  git.cofares.es' >> /etc/hosts"]
+          ports:
+            - containerPort: 8080
+            - containerPort: 50000
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+          livenessProbe:
+            httpGet:
+              path: "/login"
+              port: 8080
+            initialDelaySeconds: 90
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 5
+          readinessProbe:
+            httpGet:
+              path: "/login"
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          volumeMounts:
+            - name: jenkins-data
+              mountPath: /var/jenkins_home 
+      volumes:
+      - name: jenkins-data
+        persistentVolumeClaim:
+          claimName: pvc-jenkins      
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: jenkins-svc # Name of Service
+  namespace: {{ .Values.namespace }}
+  annotations:
+    cloud.google.com/neg: '{"ingress": true}' # Creates a NEG after an Ingress is created
+  labels:
+    app: jenkins
+spec: # Service's specification
+  # clusterIP: 10.132.48.23
+  ports:
+  - name: jenkinsport
+    port: 80
+    targetPort: 8080
+  - name: slaveconnectors
+    port: 50000
+    targetPort: 50000
+  selector:
+    app: jenkins

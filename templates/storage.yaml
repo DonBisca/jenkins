@@ -1,0 +1,36 @@
+#Creacion volumenes persistentes para el servidor nfs y reclamo de un volumen para jenkins a traves de un disco persistente regional replicado en las zonas de europe-west1-b y europe-west1-c
+#Revision V6 29/06/2022
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: nfs-pv
+  namespace: nfs
+  labels:
+    app: nfs-kubernetes 
+spec:
+  capacity:
+    storage: 250Gi
+  accessModes:
+    - ReadWriteMany
+  gcePersistentDisk:
+    pdName: {{ .Values.nfs_server }}
+    fsType: ext4
+---
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: nfs-vol-pvc
+  namespace: nfs
+  labels:
+    app: nfs-kubernetes
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: "" 
+  resources:
+    requests:
+      storage: 75Gi
+  selector:
+    matchLabels:
+      app: nfs-kubernetes

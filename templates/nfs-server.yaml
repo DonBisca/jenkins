@@ -1,0 +1,62 @@
+#Creacion de servidor NFS y servicios asociados para el acceso al mismo
+#Revision V6 29/06/2022
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nfs-statefulset
+  namespace: nfs
+spec:
+  replicas: 1
+  serviceName: nfs-server
+  selector:
+    matchLabels:
+      role: nfs-server
+  template:
+    metadata:
+      labels:
+        role: nfs-server
+    spec:
+      volumes:
+      - name: nfs-vol
+        persistentVolumeClaim:
+          claimName: nfs-vol-pvc
+      restartPolicy: Always
+      containers:
+      - name: nfs-server
+        image: itsthenetwork/nfs-server-alpine:12
+        env:
+        - name: SHARED_DIRECTORY
+          value: /nfsshare
+        ports:
+          - name: nfs
+            containerPort: 2049
+        securityContext:
+          privileged: true
+        volumeMounts:
+          - mountPath: /nfsshare
+            name: nfs-vol 
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: topology.kubernetes.io/zone
+                  operator: In
+                  values:
+                  - europe-southwest1-a
+                  - europe-southwest1-b
+                  
+---
+ 
+apiVersion: v1
+kind: Service
+metadata:
+  name: nfs-server
+  namespace: nfs
+spec:
+  # clusterIP: 10.132.48.22
+  ports:
+    - name: nfs
+      port: 2049
+  selector:
+    role: nfs-server

@@ -1,0 +1,34 @@
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: jenkins-ingress
+  namespace: {{ .Values.namespace }}
+  annotations:
+    kubernetes.io/ingress.class: "gce-internal"
+    kubernetes.io/ingress.regional-static-ip-name: {{ .Values.ip_ingress }}
+spec:
+  defaultBackend:
+    service:
+      name: jenkins-svc
+      port:
+        number: 80
+#---
+##INGRESS EXTERNO
+#apiVersion: networking.k8s.io/v1
+#kind: Ingress
+#metadata:
+#  name: jenkinskaext
+#  annotations:
+#    kubernetes.io/ingress.class: "gce"
+#spec:
+#  rules:
+#      - http:
+#         paths:
+#            - path: /*
+#              pathType: ImplementationSpecific
+#              backend:
+#                 service:
+#                     name: jenkins-svc
+#                     port:
+#                       number: 80
